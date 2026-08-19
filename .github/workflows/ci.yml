@@ -1,0 +1,46 @@
+name: Build & Test
+
+# Verifies the app actually compiles and its unit tests pass, on a real
+# macOS + Xcode runner — the same toolchain you'd use locally. This can't
+# install anything on a physical iPhone (that needs your own Mac + device),
+# but it does prove the code in this repo builds cleanly before you ever
+# open Xcode yourself.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Build (iOS Simulator)
+        run: |
+          xcodebuild build \
+            -project Waypoint.xcodeproj \
+            -scheme Waypoint \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test (iOS Simulator)
+        run: |
+          xcodebuild test \
+            -project Waypoint.xcodeproj \
+            -scheme Waypoint \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            CODE_SIGNING_ALLOWED=NO
