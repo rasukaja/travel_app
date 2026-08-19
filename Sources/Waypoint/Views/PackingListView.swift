@@ -37,7 +37,7 @@ struct PackingListView: View {
                         } label: {
                             HStack {
                                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.isChecked ? .tint : .secondary)
+                                    .foregroundStyle(item.isChecked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                                 Text(item.title)
                                     .strikethrough(item.isChecked)
                                     .foregroundStyle(item.isChecked ? .secondary : .primary)
