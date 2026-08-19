@@ -1,0 +1,14 @@
+# Xcode
+*.xcodeproj/**/xcuserdata/
+*.xcworkspace/**/xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+Generated-Info.plist
+
+# If you generate the project with XcodeGen (project.yml), the .xcodeproj
+# itself is regenerated on demand and doesn't need to be committed.
+Waypoint.xcodeproj/
+
+# macOS
+.DS_Store
