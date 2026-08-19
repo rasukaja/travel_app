@@ -40,6 +40,24 @@ MacinCloud) becomes available later — see its guide at
    like a native app. Data stays on your iPhone (IndexedDB) — nothing is
    sent to a server.
 
+### If GitHub Pages isn't available (private repo on GitHub Free)
+
+GitHub Pages for a *private* repo needs GitHub Pro or higher on a personal
+account. If Settings → Pages doesn't offer "Source: GitHub Actions", either
+upgrade, make the repo public (the code has no secrets — your actual trip
+data only ever lives locally, never in the repo), or deploy the same build
+elsewhere for free:
+
+- **Netlify**: a `netlify.toml` is already in the repo root — "Add new site
+  → Import an existing project", pick this repo, no further config needed.
+- **Cloudflare Pages**: "Create a project → Connect to Git", pick this repo,
+  set build command to `cd webapp && npm run build` and build output
+  directory to `webapp/dist`.
+
+Both are free, work with private repos, and need only a one-time account
+connection — same install steps on the iPhone afterwards (Safari → Add to
+Home Screen).
+
 No Apple ID, no Xcode, no Apple Developer account, no Mac — the entire
 build runs in GitHub Actions and the entire install happens in Safari.
 
