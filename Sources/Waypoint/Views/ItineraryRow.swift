@@ -13,9 +13,21 @@ struct ItineraryRow: View {
                 .foregroundStyle(.tint)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
+                HStack(spacing: 4) {
+                    Text(item.title)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
+                    if item.remindMe {
+                        Image(systemName: "bell.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !item.documents.isEmpty {
+                        Image(systemName: "paperclip")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 if !item.location.isEmpty {
                     Text(item.location)
                         .font(.caption)

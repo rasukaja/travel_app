@@ -8,6 +8,7 @@ struct TripDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var isShowingAddItem = false
+    @State private var isShowingImport = false
     @State private var editingItem: ItineraryItem?
 
     var body: some View {
@@ -35,15 +36,37 @@ struct TripDetailView: View {
         .navigationTitle(trip.name)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    isShowingAddItem = true
+                Menu {
+                    Button {
+                        isShowingAddItem = true
+                    } label: {
+                        Label("Add Item", systemImage: "plus")
+                    }
+                    Button {
+                        isShowingImport = true
+                    } label: {
+                        Label("Import Itinerary…", systemImage: "square.and.arrow.down")
+                    }
+                    NavigationLink {
+                        RouteMapView(trip: trip)
+                    } label: {
+                        Label("Route", systemImage: "map")
+                    }
+                    NavigationLink {
+                        PackingListView(trip: trip)
+                    } label: {
+                        Label("Packing List", systemImage: "checklist")
+                    }
                 } label: {
-                    Label("Add Item", systemImage: "plus")
+                    Label("Options", systemImage: "ellipsis.circle")
                 }
             }
         }
         .sheet(isPresented: $isShowingAddItem) {
             AddEditItineraryItemView(trip: trip)
+        }
+        .sheet(isPresented: $isShowingImport) {
+            ImportItineraryView(trip: trip)
         }
         .sheet(item: $editingItem) { item in
             AddEditItineraryItemView(trip: trip, item: item)
@@ -53,7 +76,9 @@ struct TripDetailView: View {
     private func deleteItems(at offsets: IndexSet) {
         let sorted = trip.sortedItems
         for index in offsets {
-            modelContext.delete(sorted[index])
+            let item = sorted[index]
+            NotificationManager.shared.cancelReminder(for: item)
+            modelContext.delete(item)
         }
     }
 }
@@ -69,5 +94,5 @@ struct TripDetailView: View {
             )
         )
     }
-    .modelContainer(for: [Trip.self, ItineraryItem.self], inMemory: true)
+    .modelContainer(for: [Trip.self, ItineraryItem.self, PackingItem.self, TravelDocument.self], inMemory: true)
 }

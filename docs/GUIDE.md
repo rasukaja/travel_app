@@ -90,7 +90,7 @@ You'll see all of these in context in Part 5.
 
 ## Part 3 — What we're actually building (and what we're not, yet)
 
-**MVP scope** (this is what's already written for you in `Sources/Waypoint`):
+**Scope** (this is what's already written for you in `Sources/Waypoint`):
 
 - A list of trips (name, destination, dates, an emoji).
 - Tapping a trip opens its itinerary: a timeline of items, each with a
@@ -98,14 +98,26 @@ You'll see all of these in context in Part 5.
   location, and notes.
 - Add, edit, delete trips and itinerary items. Swipe-to-delete on both
   lists.
+- **Import**: paste text or pick a PDF, and Waypoint suggests itinerary
+  entries (date/type/location guessed from the text) that you review and
+  confirm before anything is saved — nothing is added automatically.
+- **Route**: every itinerary item with a location, in chronological order,
+  with one tap to open the whole trip as a route in Google Maps (no API
+  key needed — it's a plain deep link).
+- **Packing list** per trip, a simple checkable checklist.
+- **Attachments**: photos or PDFs (tickets, confirmations, passport scans)
+  attached to any itinerary item, viewable/shareable from the app.
+- **Reminders**: an optional local notification an hour before an item's
+  date/time — scheduled entirely on-device.
 - Everything persists automatically between launches — no save button,
-  no network.
+  no network, no account.
 
-**Deliberately out of scope for v1**, so you get something working fast:
+**Deliberately out of scope for v1**, so the app stays finishable:
 
 - No real flight/hotel search or booking (that needs a backend + API keys
   and is a much bigger project — see "Where to go next" below).
-- No photos, maps, or push notifications yet.
+- No direct email/mailbox access for import — you paste text or share/open
+  a PDF into the app instead, which needs no special permissions.
 - No accounts or syncing between devices (SwiftData is local-only unless
   you later turn on iCloud sync, which is a small config change).
 
@@ -181,24 +193,42 @@ build, and run.
 Take a slow pass through these files in this order — each builds on the
 last:
 
-1. **`Models/Trip.swift`** and **`Models/ItineraryItem.swift`** — the data.
-   `@Model` is the only SwiftData-specific thing here; everything else is
-   plain Swift. Note the `@Relationship(deleteRule: .cascade, ...)` on
-   `Trip.items` — that's what makes deleting a trip also delete its
-   itinerary items.
-2. **`WaypointApp.swift`** — the entry point. `.modelContainer(for:)` is
-   the one line that turns SwiftData on for the whole app.
-3. **`Views/TripListView.swift`** — the home screen. Look at `@Query` (it
+1. **`Models/Trip.swift`** and **`Models/ItineraryItem.swift`** — the core
+   data. `@Model` is the only SwiftData-specific thing here; everything
+   else is plain Swift. Note the `@Relationship(deleteRule: .cascade, ...)`
+   on `Trip.items` — that's what makes deleting a trip also delete its
+   itinerary items (and, the same way, its packing list).
+2. **`Models/PackingItem.swift`** and **`Models/TravelDocument.swift`** —
+   the two smaller models added for the packing list and attachments.
+   `TravelDocument.data` uses `@Attribute(.externalStorage)` so photos/PDFs
+   are stored as separate files SwiftData manages, not inline in the
+   database.
+3. **`WaypointApp.swift`** — the entry point. `.modelContainer(for:)` is
+   the one line that turns SwiftData on for the whole app; it now lists
+   all four model types.
+4. **`Views/TripListView.swift`** — the home screen. Look at `@Query` (it
    fetches all trips, sorted by start date, and keeps the list live) and
    `NavigationLink(value:)` / `.navigationDestination(for:)` (how tapping
    a trip navigates to its detail screen).
-4. **`Views/TripDetailView.swift`** and **`Views/ItineraryRow.swift`** —
-   the timeline for one trip.
-5. **`Views/AddEditTripView.swift`** and
+5. **`Views/TripDetailView.swift`** and **`Views/ItineraryRow.swift`** —
+   the timeline for one trip, plus the toolbar menu that opens Import,
+   Route, and Packing List.
+6. **`Views/AddEditTripView.swift`** and
    **`Views/AddEditItineraryItemView.swift`** — the forms, presented as
    sheets (`.sheet(isPresented:)` / `.sheet(item:)`). Notice
    `AddEditItineraryItemView` is reused for both "add" and "edit" by
-   making `item` optional.
+   making `item` optional; its attachments section and reminder toggle are
+   only usable once an item exists (i.e. in edit mode).
+7. **`Services/ItineraryImportParser.swift`** — pure, testable Swift with
+   no SwiftUI/SwiftData in it: takes raw text, returns candidate entries.
+   Kept separate from the view so it has its own unit tests
+   (`Tests/WaypointTests`) and so `Views/ImportItineraryView.swift` (the
+   PDF/paste + review UI) stays simple.
+8. **`Views/RouteMapView.swift`** — builds a Google Maps URL from ordered
+   stop locations; no MapKit, no geocoding, no API key.
+9. **`Services/NotificationManager.swift`** — schedules/cancels the local
+   "1 hour before" reminder; called from `AddEditItineraryItemView.save()`
+   and from delete actions.
 
 A good first exercise: change `Trip`'s default emoji, or add a `notes`
 field to `Trip` (mirror how `ItineraryItem.notes` works) and show it on
@@ -215,6 +245,12 @@ pattern the rest of the app is built from.
 3. You should see "My Trips" with an empty state. Tap **+**, create a
    trip, tap into it, add a few itinerary items. Force-quit and reopen the
    app in the simulator (or stop/re-run) — your data should still be there.
+4. Try the toolbar menu (**···**) inside a trip: **Import Itinerary…**
+   (paste a line like `Flight AA100 departs JFK on March 5, 2027 at 10:30 AM`
+   and tap "Find Itinerary Items" to see the suggestion flow), **Route**
+   (needs at least two items with a location filled in), and **Packing
+   List**. Edit an existing item to see the reminder toggle and attachment
+   buttons (attachments only appear once you're *editing* a saved item).
 
 If it doesn't build, read the error in the left-hand issue navigator
 (⌘5) — Swift's error messages usually point at the exact line and reason.
@@ -259,11 +295,13 @@ Good habits for a solo project:
 
 ## Part 8 — Testing and growing the app safely
 
-`Tests/WaypointTests/WaypointTests.swift` has two example tests. To wire
-them up: when creating the project in Part 4, check **"Include Tests"** (or
-add a target later via File → New → Target → "Unit Testing Bundle" named
-`WaypointTests`), then add that file to it the same way you added the
-source files. Run tests with **⌘U**.
+`Tests/WaypointTests/WaypointTests.swift` has several example tests,
+including a few for `ItineraryImportParser` — since that file is plain
+Swift with no SwiftUI/SwiftData in it, it's the easiest place in the app to
+unit-test. To wire the test target up: when creating the project in Part 4,
+check **"Include Tests"** (or add a target later via File → New → Target →
+"Unit Testing Bundle" named `WaypointTests`), then add that file to it the
+same way you added the source files. Run tests with **⌘U**.
 
 Testing matters more as the app grows, but even for a small app, a couple
 of tests around your data model (like the sorting test here) catch a
@@ -334,27 +372,26 @@ or want it to survive past the 7-day free-signing limit long-term.
 
 ## Where to go next
 
-Once the MVP works end to end, natural next features, roughly in order of
-difficulty:
+The core app plus import, route, packing list, attachments, and reminders
+are all in place. Natural next features, roughly in order of difficulty:
 
 1. **Trip notes / cover photo** — extend `Trip`, add an image picker
-   (`PhotosPicker`).
-2. **Packing list** — a new `@Model` (`PackingItem`) with a checkbox,
-   owned by `Trip`, same pattern as `ItineraryItem`.
-3. **Maps** — show itinerary item locations on a `MapKit` map; needs
-   geocoding the free-text `location` field or switching it to a proper
-   place picker.
-4. **Notifications** — local notifications reminding you of an upcoming
-   flight/hotel check-in (`UserNotifications`, no backend needed).
-5. **iCloud sync across your devices** — small SwiftData config change
+   (`PhotosPicker`), same pattern as the attachments feature.
+2. **In-app map preview** — embed a small `MapKit` map (with on-device
+   geocoding via `CLGeocoder`) alongside the Google Maps deep link, for a
+   quick look without leaving the app.
+3. **PDF/photo import for scanned tickets** — the current import only
+   reads text PDFs (`PDFKit`'s `page.string`); a scanned boarding pass
+   would need `Vision`'s text recognition on a rendered page image first.
+4. **iCloud sync across your devices** — small SwiftData config change
    (`ModelConfiguration(cloudKitDatabase:)`) plus enabling the iCloud
    capability.
-6. **Real flight/hotel search** — this is the point where you'd need a
+5. **Real flight/hotel search** — this is the point where you'd need a
    backend or a travel API. If you want to explore that later, flight
    search (e.g. via Kiwi.com) is something I can help wire up as a
    separate, bigger milestone — it changes the architecture (network
    layer, API keys, loading/error states) enough that it's worth doing as
-   its own project phase rather than bolting onto the MVP.
+   its own project phase rather than bolting onto what's here.
 
 Come back anytime with "let's add X to Waypoint" and I can help design and
 write that feature the same way this one was built.

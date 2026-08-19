@@ -15,6 +15,10 @@ final class Trip {
     @Relationship(deleteRule: .cascade, inverse: \ItineraryItem.trip)
     var items: [ItineraryItem] = []
 
+    /// Deleting a trip also deletes its packing checklist.
+    @Relationship(deleteRule: .cascade, inverse: \PackingItem.trip)
+    var packingItems: [PackingItem] = []
+
     init(
         name: String,
         destination: String,
@@ -32,5 +36,13 @@ final class Trip {
     /// The trip's itinerary items in chronological order.
     var sortedItems: [ItineraryItem] {
         items.sorted { $0.date < $1.date }
+    }
+
+    /// Packing checklist with unchecked items first, then alphabetically.
+    var sortedPackingItems: [PackingItem] {
+        packingItems.sorted {
+            if $0.isChecked != $1.isChecked { return !$0.isChecked }
+            return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        }
     }
 }

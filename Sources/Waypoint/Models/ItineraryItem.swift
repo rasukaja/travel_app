@@ -44,6 +44,15 @@ final class ItineraryItem {
     var notes: String
     var trip: Trip?
 
+    /// Whether a local "1 hour before" reminder notification is scheduled
+    /// for this entry. See NotificationManager.
+    var remindMe: Bool = false
+
+    /// Boarding passes, confirmations, passport scans, etc. attached to
+    /// this entry. Deleting the entry also deletes its attachments.
+    @Relationship(deleteRule: .cascade, inverse: \TravelDocument.item)
+    var documents: [TravelDocument] = []
+
     init(
         title: String,
         type: ItineraryItemType = .activity,
