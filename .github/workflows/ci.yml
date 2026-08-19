@@ -32,8 +32,23 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: List available simulators
-        run: xcrun simctl list devices available
+      - name: Find a usable iPhone simulator
+        id: sim
+        run: |
+          name=$(xcrun simctl list devices available -j \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for runtime, devices in data['devices'].items():
+    if 'iOS' not in runtime:
+        continue
+    for d in devices:
+        if d['name'].startswith('iPhone'):
+            print(d['name'])
+            sys.exit(0)
+")
+          echo "Using simulator: $name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: Build (iOS Simulator)
         run: |
@@ -48,5 +63,5 @@ jobs:
           xcodebuild test \
             -project Waypoint.xcodeproj \
             -scheme Waypoint \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=${{ steps.sim.outputs.name }}' \
             CODE_SIGNING_ALLOWED=NO
