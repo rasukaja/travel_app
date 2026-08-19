@@ -35,8 +35,16 @@ jobs:
       - name: Find a usable iPhone simulator
         id: sim
         run: |
-          name=$(xcrun simctl list devices available \
-            | awk '/iPhone/ { sub(/ \(.*/, ""); sub(/^ +/, ""); print; exit }')
+          name=$(xcrun simctl list devices available -j | jq -r '
+            .devices
+            | to_entries
+            | map(select(.key | test("iOS")))
+            | sort_by(.key)
+            | last
+            | .value[]
+            | select(.name | startswith("iPhone"))
+            | .name
+          ' | head -n1)
           echo "Using simulator: $name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
