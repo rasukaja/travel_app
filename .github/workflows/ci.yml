@@ -17,6 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select latest available Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1)
+          echo "Selecting $latest"
+          sudo xcode-select -s "$latest/Contents/Developer"
+
       - name: Show Xcode version
         run: xcodebuild -version
 
