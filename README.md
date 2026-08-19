@@ -1,53 +1,76 @@
 # Waypoint — a trip planner for iPhone
 
 Waypoint is a simple, local-only trip planner: create trips, then build a
-timeline of flights, hotels, activities, and notes for each one. No account,
-no backend, no API keys — everything is stored on your iPhone with SwiftData.
+timeline of flights, hotels, activities, and notes for each one, plus a
+packing list, travel documents, and a route map. No account, no backend,
+no API keys — everything stays on your device.
 
-Beyond the basics, Waypoint can also:
+There are **two implementations** in this repo, because it turned out the
+original plan (native Swift) needs a Mac to build and install, and that's
+not available here:
 
-- **Import itineraries** — paste text or pick a PDF (boarding pass, hotel
-  confirmation, itinerary email) and Waypoint suggests timeline entries for
-  you to review and confirm before anything is saved.
-- **Show the route** — every itinerary item with a location, in order, with
-  one tap to open the whole trip as a route in Google Maps.
-- **Track a packing list** per trip.
-- **Attach photos/PDFs** (tickets, confirmations, passport scans) to any
-  itinerary item.
-- **Remind you** with a local notification an hour before an item starts.
+| | [`webapp/`](webapp/) — **use this one** | [`Sources/`](Sources/) |
+|---|---|---|
+| Tech | React + TypeScript, installable as a PWA | SwiftUI + SwiftData |
+| Install without a Mac | ✅ yes | ❌ no (Xcode is macOS-only) |
+| Install on iPhone | Safari → Share → "Zum Home-Bildschirm" | Xcode → Run on device |
+| Push notifications while closed | ❌ (iOS PWA limitation, see below) | ✅ |
 
-This repo is set up as a **first iOS coding project**. If you're new to this:
+Both cover the same feature set (itinerary timeline, packing list,
+documents, route map). **The PWA is the one to install today.** The Swift
+app is kept as-is in case a Mac (own, borrowed, or a rented cloud Mac like
+MacinCloud) becomes available later — see its guide at
+[docs/GUIDE.md](docs/GUIDE.md).
 
-**Start here → [docs/GUIDE.md](docs/GUIDE.md)** — a full walkthrough from
-"I have a Mac and nothing else" to "my app is running on my iPhone", plus
-what comes after (App Store, next features).
+## Installing the PWA on your iPhone
 
-## What's in this repo
+1. This repo deploys `webapp/` to GitHub Pages automatically on every push
+   (see `.github/workflows/pages.yml`). **One-time setup**: in the GitHub
+   repo, go to **Settings → Pages** and set **Source: GitHub Actions** (only
+   needed once — if it's already set, nothing to do).
+2. Once the "Deploy Waypoint PWA to GitHub Pages" workflow has run
+   successfully, the app is live at:
+   `https://<your-github-username>.github.io/<repo-name>/`
+   (check the workflow run, or Settings → Pages, for the exact URL).
+3. Open that URL in **Safari on your iPhone** (must be Safari, not Chrome,
+   for "Add to Home Screen" to install it as an app).
+4. Tap the **Share** icon → **"Zum Home-Bildschirm"** ("Add to Home
+   Screen") → **Add**.
+5. Waypoint now has its own icon on your home screen and opens full-screen,
+   like a native app. Data stays on your iPhone (IndexedDB) — nothing is
+   sent to a server.
+
+No Apple ID, no Xcode, no Apple Developer account, no Mac — the entire
+build runs in GitHub Actions and the entire install happens in Safari.
+
+### Known limitation: reminders
+
+Real push notifications while the app is closed require a push server,
+which this local-only app deliberately doesn't have. Instead, Waypoint
+shows a "coming up" banner for items starting soon whenever you open the
+app, and will fire a notification in the foreground if you grant
+permission. If reliable background alerts turn out to matter more than
+staying fully local/serverless, that's a good next feature to revisit.
+
+## Repo layout
 
 ```
-Sources/Waypoint/          the app's Swift source code
+webapp/                    the PWA (React/TypeScript) — see webapp/README.md
+Sources/Waypoint/          the native Swift app's source code
   WaypointApp.swift          app entry point
   Models/                    Trip, ItineraryItem, PackingItem, TravelDocument
   Services/                  NotificationManager, ItineraryImportParser
   Views/                     all the SwiftUI screens
-Tests/WaypointTests/       unit tests (model logic + the import parser)
+Tests/WaypointTests/       Swift unit tests (model logic + the import parser)
 project.yml                 optional XcodeGen project definition
-docs/GUIDE.md                the full step-by-step guide
+docs/GUIDE.md                full step-by-step guide for the Swift app + Mac
+.github/workflows/pages.yml  builds & deploys webapp/ to GitHub Pages
+.github/workflows/ci.yml     builds & tests the Swift app on macOS runners
 ```
 
-There's no `.xcodeproj` committed here — you'll create it locally in Xcode
-(see the guide, Part 4). That's normal: project files are regenerated per
-machine/Xcode version and don't belong in git for a solo project like this.
+## If you get access to a Mac later
 
-## Quick start (once you've read Part 1–4 of the guide)
-
-1. Create a new iOS App project in Xcode named **Waypoint**, interface
-   **SwiftUI**, storage **SwiftData**, minimum deployment **iOS 17**.
-2. Delete the template's `ContentView.swift` and the default `Item.swift`
-   (if SwiftData was pre-selected, Xcode may generate a placeholder model).
-3. Drag the `Models`, `Services`, and `Views` folders and `WaypointApp.swift`
-   from this repo's `Sources/Waypoint/` into your Xcode project navigator
-   (check "Copy items if needed").
-4. Build and run (`⌘R`) in the Simulator.
-
-Full details, screenshots-in-words, and troubleshooting are in the guide.
+The native app in `Sources/` already has the same feature set and a CI
+workflow that's green on macOS runners. `docs/GUIDE.md` walks through
+opening it in Xcode and running it on a real iPhone from there — nothing
+else needs to change.
